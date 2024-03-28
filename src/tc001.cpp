@@ -4811,36 +4811,43 @@ float mapToSegment(unsigned int thermalPixel, unsigned int segMin, unsigned int 
     return normStart + (float)(thermalPixel - segMin) / (segMax - segMin) * (normEnd - normStart);
 }
 
-float handleFireAndRain(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) {
+
+float handleFireAndRain(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) { //do I need to pass globals if I'm not changing them anymore?
+	//example function for tailoring temperature range to custom colormap
+	//force coldest temp range to be blue and hottest temp range to be red
+	//add weighting anywhere in between
+
+	//globalKelvin variables lock to temps in view 'l'
+	//minF and maxF are the min and max temps in the current view
+	
 	float currentKmin = celsius2Kelvin(minF-1);
 	float currentKmax = celsius2Kelvin(maxF+1);
 	float currentKavg = celsius2Kelvin(avgF);
 	float avgMax = (currentKmax/currentKavg)*currentKavg;
 	float avgMin = (currentKmin/currentKavg)*currentKavg;
-	float blueMin = fahr2Kelvin(40);
+	float blueMin = fahr2Kelvin(40);	// forces the sky to be blue if you're outside and stops it from dragging the colormap down
 	float redMax = fahr2Kelvin(110);
+
+	//clip to min and max values
 	if (currentKmin < blueMin) {
 		currentKmin = blueMin;
 	}
 	if (currentKmax > redMax) {
 		currentKmax = redMax;
 	}
-	if (thermalPixel <= blueMin) {
-		zero2One = mapToSegment(thermalPixel, globalKelvinMin, blueMin, 0.0, 0.01); // 
-	} else if (thermalPixel < avgMin) {
-		zero2One = mapToSegment(thermalPixel, currentKmin, avgMin, 0.01, 0.06); // 
-	} else if (thermalPixel < currentKavg) {
-		zero2One = mapToSegment(thermalPixel, avgMin, currentKavg, 0.06, 0.5); //
-	} else if (thermalPixel < avgMax) {
-		zero2One = mapToSegment(thermalPixel, currentKavg, avgMax, 0.5, 0.9); //
-	} else if (thermalPixel < currentKmax) {
-		zero2One = mapToSegment(thermalPixel, avgMax, currentKmax, 0.96, 0.99); //
-	} else if (thermalPixel >= redMax) {
-		zero2One = mapToSegment(thermalPixel, redMax, globalKelvinMax, 0.99, 1.0); // 
+	if (thermalPixel < blueMin) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, blueMin, 0.0, 0.056);	// bottom 5% is blue
+	} else if (thermalPixel < redMax) {
+		zero2One - mapToSegment(thermalPixel, blueMin, redMax, 0.056, 0.944);			// 89% is the gradient
+	} else if (thermalPixel < globalKelvinMax) {
+		zero2One = mapToSegment(thermalPixel, redMax, globalKelvinMax, 0.944, 1.0); 	// top 5% is red 
 	}
 
 	return zero2One;
 }
+
+
+
 float handleCelestialWarmth(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) {
 	float currentKmin = celsius2Kelvin(minF-1);
 	float currentKmax = celsius2Kelvin(maxF+1);
@@ -4919,23 +4926,25 @@ float handleRoiRange(float thermalPixel, float zero2One, unsigned short globalKe
     unsigned short roiMinTemp = roiData.minTemp;
     unsigned short roiMaxTemp = roiData.maxTemp;
 
-	//printf("roiMin: %d   roiMax: %d\n", roiMinTemp, roiMaxTemp);
-	// Use the minTemperature and maxTemperature to adjust the colormap
 
-	//make sure if the roiMin is less than the globalKelvinMin, they overlap
+	//
+	if (thermalPixel <= globalKelvinMax && roiMinTemp == globalKelvinMin && roiMaxTemp == globalKelvinMax) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, globalKelvinMax, 0.0, 1.0); // Global range (entire colormap) if roi contains global min and max. maybe not the best system.
 
-	if (thermalPixel < roiMinTemp) {
-		zero2One = mapToSegment(thermalPixel, globalKelvinMin, roiMinTemp, 0.0, 0.4);
+	} else if (thermalPixel < roiMinTemp && roiMinTemp != globalKelvinMin) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, roiMinTemp, 0.0, 0.3);
 
-	} else if (thermalPixel < roiMaxTemp && roiMaxTemp == globalKelvinMax) {
-
-		zero2One = mapToSegment(thermalPixel, roiMinTemp, roiMaxTemp, 0.4, 1.0); 
+	} else if (thermalPixel < roiMaxTemp && roiMinTemp == globalKelvinMin) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, roiMaxTemp, 0.0, 0.7);
 	
-	} else if (thermalPixel < roiMaxTemp && roiMaxTemp != globalKelvinMax) {
+	}else if (thermalPixel < roiMaxTemp && roiMaxTemp != globalKelvinMax) {
+		zero2One = mapToSegment(thermalPixel, roiMinTemp, roiMaxTemp, 0.3, 0.7); 
+	
+	} else if (thermalPixel < globalKelvinMax && roiMaxTemp != globalKelvinMax) {
+		zero2One = mapToSegment(thermalPixel, roiMaxTemp, globalKelvinMax, 0.7, 1.0);
 
-		zero2One = mapToSegment(thermalPixel, roiMinTemp, roiMaxTemp, 0.4, 0.6);
-	} else if (thermalPixel < globalKelvinMax && roiMaxTemp != globalKelvinMax){
-		zero2One = mapToSegment(thermalPixel, roiMaxTemp, globalKelvinMax, 0.6, 1.0);
+	} else if (thermalPixel <= globalKelvinMax && roiMaxTemp == globalKelvinMax) {
+		zero2One = mapToSegment(thermalPixel, roiMinTemp, globalKelvinMax, 0.3, 1.0);
 	}
 
 	return zero2One;
@@ -4973,7 +4982,7 @@ unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 	float degree, thisY;
 
 	/***	NOTE	***/
-	// I will try to make each filter case a different type of manual range of specific to a colormap
+	// I will try to make each filter case a different type of manual/auto range sometimes for specific colormaps
 	// I won't change the name for now for simplicity
 	switch ( filterType ) {
 		case FILTER_TYPE_COS360: zero2One = cos360( zero2One ); break;
@@ -5008,8 +5017,6 @@ unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 			zero2One = 0.1 + (0.9 * zero2One);
 		}
 	}
-
-
 	//CHANGED the return so the colomap isn't cropped to values in colormap at time of clipping
 	thermalPixel   = (( MAX_CLUT_PIX * zero2One ) + BASE_PIXEL);
 	return ( thermalPixel & 0x000080FF );

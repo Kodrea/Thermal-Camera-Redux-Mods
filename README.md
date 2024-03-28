@@ -1,9 +1,18 @@
 # Thermal-Camera-Redux-Mods
-### This fork is to experiment with features and changes to the code base
-- Added custom RGB based colormaps
+## This fork is to experiment with features and changes to the code base
+Work in progress so you'll need to play with variables to use new features. I'll be pushing updates to clean up code and add more features.
+
+## Added
+- Custom RGB based colormaps
 - Preset temperature range locks
 - equalizeHist changed to CLAHE
 - Canny edge detection overlay linked with histogram for now.
+
+## Next to Add
+- Optimize Canny edges: Prefer edges around defined temps, not just contrast in image
+- Experiment with more OpenCV modules (Object Detection and Tracking, Background Subtraction, etc.)
+- Create drone configuration (colormap & temperature combo)
+- Raspberry Pi camera overlay
 
  Topdon TC001 (and clones) Linux thermal camera app to read and display live and offline thermal data.<br />
 
@@ -185,6 +194,30 @@ Tested by Amish Technician (from EEVblog) on numerous RPi models including RPi Z
 
 ![Screenshot](media/GITHUB_BORDER_LAYOUT_2.png)
 ![Screenshot](media/GITHUB_PC_BORDER.png)
+
+## Projects List
+
+### Drone Mounted Topdon
+- Mounted the topdon and RPi zero 2W to my drone with 3D printed parts.
+- Used Vifly video switcher and RPi composite out pads to toggle from fpv camera to thermal camera.
+- Topdon was mounted with servos connected to flight controller running iNav.
+- Arduino head tracker program used as servo inputs (https://headtracker.gitbook.io/head-tracker-v2.2)
+<div style="display: flex;">
+  <div style="width: 50%;">
+    <img src="media/Drone_with_Topdon.png" style="width: 100%;" />
+  </div>
+  <div style="display: flex; flex-direction: column; width: 50%;">
+    <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+      <img src="media/Apartments.png" style="width: auto; max-height: 100%;" />
+    </div>
+    <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+      <img src="media/Apartments_norm.png" style="width: auto; max-height: 100%;" />
+    </div>
+  </div>
+</div>
+
+
+
 
 ## Potential Future Upgrades:
 - Data logging over time.
