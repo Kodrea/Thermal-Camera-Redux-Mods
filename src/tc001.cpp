@@ -13,6 +13,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>  // Video Frame class
 #include <iostream>
 
@@ -573,14 +574,140 @@ CMap *newCmap( Mat *matrix, int bgr2rgb, const char *name, CMapType type) {
 Mat createRed2BlueBlackWhiteCmap(int ramp);
 Mat createHSLCmap(int direction);
 
+
+
+// This is the function that can make new colormaps
+// Utility function to interpolate between two colors
+Vec3b interpolateColor(const Vec3b &colorStart, const Vec3b &colorEnd, double factor) {
+    Vec3b result;
+    for (int i = 0; i < 3; ++i) {
+        result[i] = saturate_cast<uchar>(colorStart[i] + factor * (colorEnd[i] - colorStart[i]));
+    }
+    return result;
+}
+
+
+
+// Function to create the custom colormap, make sure to add it to the colormap array
+Mat createSpringTime() {
+    // Define the colors in BGR format
+    Vec3b colors[] = {
+        Vec3b(71, 53, 33),     // Midnight Blue
+        Vec3b(132, 53, 64),   // Violet
+        Vec3b(202, 108, 196), // Mauve
+        Vec3b(130, 119, 232), // Salmon
+        Vec3b(119, 148, 232),  // Peach
+		Vec3b(255, 255, 255)  // Peach
+    };
+    int numColors = sizeof(colors) / sizeof(colors[0]);
+    int steps = 256 / (numColors - 1);
+
+    // Create an empty matrix for the colormap
+    Mat colormap(256, 1, CV_8UC3);
+    auto data = colormap.ptr<cv::Vec3b>();
+
+    // Fill the colormap
+    for (int i = 0; i < numColors - 1; ++i) {
+        for (int j = 0; j < steps; ++j) {
+            double factor = double(j) / (steps - 1);
+            Vec3b color = interpolateColor(colors[i], colors[i + 1], factor);
+            int index = i * steps + j;
+            if (index < 256) {
+                data[index] = color;
+            }
+        }
+    }
+
+    // Ensure the last color is set
+    data[255] = colors[numColors - 1];
+
+    return colormap;
+}
+
+Mat createFireAndRain() {
+    // Create an empty matrix with 256 rows and 1 column, each cell containing a BGR triplet
+    Mat colormap(256, 1, CV_8UC3);
+	auto data = colormap.ptr<cv::Vec3b>(); // Correct way to access BGR triplets
+
+
+    // Dark blue to blue for the first 5%
+    for(int i = 0; i < 13; ++i) {
+    data[i][0] = 224 - static_cast<uchar>((96 * i) / 12); // Blue channel, decreases to get darker
+    data[i][1] = 128 - static_cast<uchar>((128 * i) / 12); // Green channel, decreases to reduce whiteness
+    data[i][2] = 128 - static_cast<uchar>((128 * i) / 12);
+    }
+
+    // Black to grayscale for 5% to 95%
+    for(int i = 13; i < 243; ++i) {
+        uchar intensity = static_cast<uchar>(255 * (i - 13) / (243 - 13));
+        data[i][0] = intensity; // Blue channel
+        data[i][1] = intensity; // Green channel
+        data[i][2] = intensity; // Red channel
+    }
+
+    // Red to orange for the last 5%
+    for(int i = 243; i < 256; ++i) {
+        data[i][0] = 0;   // Blue channel
+        data[i][1] = 128 + static_cast<uchar>((127 * (i - 243)) / (256 - 243)); // Green channel
+        data[i][2] = 255; // Red channel
+    }
+
+    return colormap;
+}
+
+
+
+// The original chatGPT made the colormap
+Mat createCelestialWarmth() {
+    Mat colormap(256, 1, CV_8UC3); // Create an empty matrix with 256 rows and 1 column, each cell containing a BGR triplet
+    auto data = colormap.ptr<cv::Vec3b>(); // Correct way to access BGR triplets
+
+
+    // Dark blue to light blue for the first 10%
+    for(int i = 0; i < 26; ++i) {
+        data[i][0] = static_cast<uchar>(128 + (127 * i) / 25); // Blue channel increases
+        data[i][1] = static_cast<uchar>((128 * i) / 25); // Green channel slightly increases
+        data[i][2] = 0; // Red channel
+    }
+
+    // Emerald green to pale olive for 10% to 50%
+    for(int i = 26; i < 128; ++i) {
+        data[i][0] = static_cast<uchar>(128 - (28 * (i - 26)) / 102); // Decrease blue to reach pale olive
+        data[i][1] = static_cast<uchar>(255 - (127 * (i - 26)) / 102); // Green channel slightly decreases
+        data[i][2] = 0; // Red channel
+    }
+
+    // Deep orange to peach for 50% to 70%
+    for(int i = 128; i < 179; ++i) {
+        data[i][0] = static_cast<uchar>(255 - (255 * (i - 128)) / 51); // Blue channel decreases towards peach
+        data[i][1] = static_cast<uchar>(165 + (90 * (i - 128)) / 51); // Green channel increases towards peach
+        data[i][2] = 255; // Red channel constant
+    }
+
+    // Red to white for 70% to 100%
+    for(int i = 179; i < 256; ++i) {
+        data[i][0] = static_cast<uchar>((255 * (i - 179)) / 77); // Increase blue towards white
+        data[i][1] = static_cast<uchar>((255 * (i - 179)) / 77); // Increase green towards white
+        data[i][2] = 255; // Red channel constant
+    }
+
+    return colormap;
+}
+
 static Mat red2BlueCmap         = createRed2BlueBlackWhiteCmap( R2B );
 static Mat red2BlueBlackLCmap   = createRed2BlueBlackWhiteCmap( R2B_2B_L );
 static Mat red2BlueWhiteLCmap   = createRed2BlueBlackWhiteCmap( R2B_2W_L );
 static Mat red2BlueBlackUCCmap  = createRed2BlueBlackWhiteCmap( R2B_W2B_UC );
 static Mat red2BlueWhiteUCCmap  = createRed2BlueBlackWhiteCmap( R2B_B2W_UC );
 
-static Mat HSLCmap              = createHSLCmap(-1); // HSL Hot(red)    to Cold(violet)
-static Mat inverseHSLCmap       = createHSLCmap( 1); // HSL Hot(violet) to Cold(red)
+static Mat HSLCmap              = createHSLCmap(-1); 	// HSL Hot(red)    to Cold(violet)
+static Mat inverseHSLCmap       = createHSLCmap( 1);	// HSL Hot(violet) to Cold(red)
+
+//new colormaps
+static Mat FireAndRain			= createFireAndRain();	// blue to black to white to red to orange
+static Mat CelestialWarmth 		= createCelestialWarmth();
+static Mat SpringTime 			= createSpringTime();
+
 
 // Support No Colormaps, Pre-Defined Colormaps, Inverted Colormaps, User Defined Colormaps ...
 CMap *cmaps[] = {
@@ -616,13 +743,18 @@ CMap *cmaps[] = {
 	newCmap( COLORMAP_TURBO,	1, "Inv Turbo",	COLORMAP_INDEX ),
 	newCmap( COLORMAP_DEEPGREEN,	0, "Deepgreen",	COLORMAP_INDEX ),
 
-	newCmap( &HSLCmap,		0, "HSL",	COLORMAP_MATRIX ), // User defined colormap
-	newCmap( &inverseHSLCmap,	0, "Inv HSL",	COLORMAP_MATRIX ), // User defined colormap
-	newCmap( &red2BlueCmap,		0, "R2B",	COLORMAP_MATRIX ), // User defined colormap
+	newCmap( &HSLCmap,				0, "HSL",	COLORMAP_MATRIX ), // User defined colormap
+	newCmap( &inverseHSLCmap,		0, "Inv HSL",	COLORMAP_MATRIX ), // User defined colormap
+	newCmap( &red2BlueCmap,			0, "R2B",	COLORMAP_MATRIX ), // User defined colormap
 	newCmap( &red2BlueBlackLCmap,	0, "C2BlackL",	COLORMAP_MATRIX ), // User defined colormap
 	newCmap( &red2BlueBlackUCCmap,	0, "C2BlackUC",	COLORMAP_MATRIX ), // User defined colormap
 	newCmap( &red2BlueWhiteLCmap,	0, "C2WhiteL",	COLORMAP_MATRIX ), // User defined colormap
-	newCmap( &red2BlueWhiteUCCmap,	0, "C2WhiteUC",	COLORMAP_MATRIX )  // User defined colormap
+	newCmap( &red2BlueWhiteUCCmap,	0, "C2WhiteUC",	COLORMAP_MATRIX ),  // User defined colormap
+
+	//new colormaps
+	newCmap( &FireAndRain,			0, "FireAndRain", COLORMAP_MATRIX), // User defined colormap
+	newCmap( &CelestialWarmth, 		0, "CelestialWarmth", COLORMAP_MATRIX), // User defined colormap
+	newCmap( &SpringTime, 			0, "SpringTime", COLORMAP_MATRIX),
 #endif
 };
 
@@ -2247,6 +2379,35 @@ printf("%03lu,  %4.llu,  %6.llu,  %5.llu,  %5.llu,  %5.llu,   %4.lld,  %6.lld,  
 	system("sort dump.txt > dump.txt.s");
 }
 
+
+//ROI Struct declared outside function to make it globally accessible
+typedef struct {
+    int minX, minY, maxX, maxY; // Bounds of the ROI
+    unsigned short minTemp;
+    unsigned short maxTemp;
+} ROITemperatureData;
+//Default ROI bounding box; 50x50 centered
+//can be changed in later functions
+ROITemperatureData roiData = {(256/2)-(50/2), (192/2)-(50/2), (256/2)+(50/2), (192/2)+(50/2), USHRT_MAX, 0};	//(x1, y1, x2, y2, minTemp, maxTemp)
+
+
+void updateROITemperatures(const Mat &thermalFrame, ROITemperatureData &roiData) {
+	unsigned short *dataPtr = (unsigned short *)thermalFrame.data;
+	unsigned short currentMin = USHRT_MAX;
+	unsigned short currentMax = 0;
+
+	for (int y = roiData.minY; y <= roiData.maxY; ++y) {
+		for (int x = roiData.minX; x <= roiData.maxX; ++x) {
+			unsigned short temp = dataPtr[y * thermalFrame.cols + x];
+			if (temp < currentMin) currentMin = temp;
+			if (temp > currentMax) currentMax = temp;
+		}
+	}
+
+	roiData.minTemp = currentMin;
+	roiData.maxTemp = currentMax;
+}
+
 // Process every 2-byte temperature pixel in the thermal frame
 // Data mine Min/Avg/Max and center of frame temperatures and their
 //     respective x=col, y=row locations (Avg has no location)
@@ -2254,7 +2415,7 @@ printf("%03lu,  %4.llu,  %6.llu,  %5.llu,  %5.llu,  %5.llu,   %4.lld,  %6.lld,  
 // This has to be done as efficiently as possible on every thermal frame
 // Can't just look at the low bytes else temps and locations will be wrong.
 
-void processThermalFrame( ProcessedThermalFrame *ptf, Mat *thermalFrame ) {
+void processThermalFrame( ProcessedThermalFrame *ptf, Mat *thermalFrame ) { 		
 
 	/*******************************************************************
 	 * In FreezeFrame and Offline mode, the following temps change:
@@ -2419,6 +2580,7 @@ void processThermalFrame( ProcessedThermalFrame *ptf, Mat *thermalFrame ) {
 		ptf->min.linearI = lmin;
 		ptf->max.linearI = lmax;
 
+
 		// Grab once for CLIP or GROW
 		if ( growOrClip ) {
 			if (globalImgMin > frameImgMin) globalImgMin = frameImgMin;
@@ -2428,6 +2590,10 @@ void processThermalFrame( ProcessedThermalFrame *ptf, Mat *thermalFrame ) {
 
 			globalImgMin_CLUT = ( globalImgMin - BASE_PIXEL );
 			globalImgMax_CLUT = ( globalImgMax - BASE_PIXEL );
+
+			//Function to update ROI values
+			//This should only run once when setting locking range.
+			updateROITemperatures(*thermalFrame, roiData);
 
 // printf( "min CLUT %d, max CLUT %d\n", globalImgMin_CLUT, globalImgMax_CLUT );
 
@@ -4437,9 +4603,32 @@ void *stdinDataThread( void *ptr ) {
 	return ptr;
 }
 
+                string type2str(int type) {
+                                string r;
+
+                                uchar depth = type & CV_MAT_DEPTH_MASK;
+                                uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+                                switch ( depth ) {
+                                        case CV_8U:  r = "8U"; break;
+                                        case CV_8S:  r = "8S"; break;
+                                        case CV_16U: r = "16U"; break;
+                                        case CV_16S: r = "16S"; break;
+                                        case CV_32S: r = "32S"; break;
+                                        case CV_32F: r = "32F"; break;
+                                        case CV_64F: r = "64F"; break;
+                                        default:     r = "User"; break;
+                                }
+
+                                r += "C";
+                                r += (chans+'0');
+
+                                        return r;
+				}
+
 static Mat hist[2];
 // Optimization and make thread safe by user passing in pre-allocated hist scratch buffer
-void histogramWrapper( Mat &src, Mat &dst, int who )
+void histogramWrapper( Mat &src, Mat &dst, int who, cv::Mat &edgesOutput)
 {
 //printf("> %s(%d) %d x %d\n", __func__, __LINE__, src.rows, src.cols ); FF();
 
@@ -4484,7 +4673,23 @@ void histogramWrapper( Mat &src, Mat &dst, int who )
 	}
 	// *************** END POINTER LOOP UNROLL VERSION ******************
 
-	equalizeHist( hist[who], hist[who] ); // Source 8-bit single channel image. 
+	//equalizeHist( hist[who], hist[who] ); // Source 8-bit single channel image. 
+
+	// Try CLAHE instead of equalizeHist
+	Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+	clahe->setClipLimit(2.0);
+	clahe->setTilesGridSize(Size(8, 8));
+	// 2. Apply CLAHE to the hist[who] image.
+	clahe->apply(hist[who], hist[who]);
+
+    cv::Mat edges;	//declare this somewhere else?
+    cv::Canny(hist[who], edges, 135, 425);
+    edgesOutput = edges.clone(); // Store the edges in the output parameter
+	// After calling cv::Canny in the histogramWrapper function
+
+	// show edges in seperate window
+	//cv::imshow("Detected Edges", edges);
+	//cv::waitKey(1); // Just wait for a short amount of time to display the window
 
 	// *************** BEGIN POINTER LOOP UNROLL VERSION ******************
 	unsigned short *dstPtr  = &((unsigned short *)(dst.datastart))[0];
@@ -4597,9 +4802,144 @@ unsigned short toCLUTSubRange( float zero2One ) {
 
 // Optimization: Inline code
 #define toCLUTSubRange( zero2One ) \
-		(globalImgMin_CLUT + ( (float)zero2One * (float)globalImgRange ))
-
+		(globalImgMin_CLUT + ( (float)zero2One * (float)globalImgRange ));
 #endif
+
+// Utility function to map a thermal pixel to its corresponding segment in the normalized range
+// values like "globalKelvinMin" and "globalKelvinMax" are the temperature in kelvin*64
+float mapToSegment(unsigned int thermalPixel, unsigned int segMin, unsigned int segMax, float normStart, float normEnd) {
+    return normStart + (float)(thermalPixel - segMin) / (segMax - segMin) * (normEnd - normStart);
+}
+
+float handleFireAndRain(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) {
+	float currentKmin = celsius2Kelvin(minF-1);
+	float currentKmax = celsius2Kelvin(maxF+1);
+	float currentKavg = celsius2Kelvin(avgF);
+	float avgMax = (currentKmax/currentKavg)*currentKavg;
+	float avgMin = (currentKmin/currentKavg)*currentKavg;
+	float blueMin = fahr2Kelvin(40);
+	float redMax = fahr2Kelvin(110);
+	if (currentKmin < blueMin) {
+		currentKmin = blueMin;
+	}
+	if (currentKmax > redMax) {
+		currentKmax = redMax;
+	}
+	if (thermalPixel <= blueMin) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, blueMin, 0.0, 0.01); // 
+	} else if (thermalPixel < avgMin) {
+		zero2One = mapToSegment(thermalPixel, currentKmin, avgMin, 0.01, 0.06); // 
+	} else if (thermalPixel < currentKavg) {
+		zero2One = mapToSegment(thermalPixel, avgMin, currentKavg, 0.06, 0.5); //
+	} else if (thermalPixel < avgMax) {
+		zero2One = mapToSegment(thermalPixel, currentKavg, avgMax, 0.5, 0.9); //
+	} else if (thermalPixel < currentKmax) {
+		zero2One = mapToSegment(thermalPixel, avgMax, currentKmax, 0.96, 0.99); //
+	} else if (thermalPixel >= redMax) {
+		zero2One = mapToSegment(thermalPixel, redMax, globalKelvinMax, 0.99, 1.0); // 
+	}
+
+	return zero2One;
+}
+float handleCelestialWarmth(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) {
+	float currentKmin = celsius2Kelvin(minF-1);
+	float currentKmax = celsius2Kelvin(maxF+1);
+	float currentKavg = celsius2Fahr(avgF);
+	float blueMin = fahr2Kelvin(48*(currentKavg/75));
+	float redMax = fahr2Kelvin(110);
+	if (currentKmin < blueMin) {
+		currentKmin = blueMin;
+	}
+	if (currentKmax > redMax) {
+		currentKmax = redMax;
+	}
+	if (thermalPixel <= blueMin) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, blueMin, 0.0, 0.2); // Corrected to 5%
+	} else if (thermalPixel < currentKmax) {
+		zero2One = mapToSegment(thermalPixel, currentKmin, currentKmax, 0.4, 0.99); // Adjusted for consistency
+	} else if (thermalPixel >= redMax) {
+		zero2One = mapToSegment(thermalPixel, redMax, globalKelvinMax, 0.99, 1.0); // Corrected to 5%
+	}
+	return zero2One;
+}
+
+float handleCividis(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) {
+	float currentKmin = celsius2Kelvin(minF-1);
+	float currentKmax = celsius2Kelvin(maxF+1);
+	float blueMin = fahr2Kelvin(50);
+	float redMax = fahr2Kelvin(110);
+	if (currentKmin < blueMin) {
+		currentKmin = blueMin;
+	}
+	if (currentKmax > redMax) {
+		currentKmax = redMax;
+	}
+	if (thermalPixel <= blueMin) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, blueMin, 0.0, 0.15); // Corrected to 5%
+	} else if (thermalPixel < currentKmax) {
+		zero2One = mapToSegment(thermalPixel, currentKmin, currentKmax, 0.15, 0.85); // Adjusted for consistency
+	} else if (thermalPixel >= redMax) {
+		zero2One = mapToSegment(thermalPixel, redMax, globalKelvinMax, 0.85, 1.0); // Corrected to 5%
+	}
+	return zero2One;
+}
+
+
+float handleRoiRange(float thermalPixel, float zero2One, unsigned short globalKelvinMax, unsigned short globalKelvinMin) {
+    static int64_t lastUpdateTime = 0; // Store the last update time
+    int64_t currentTime = currentTimeMillis(); // Get current time in milliseconds
+	static bool roiUpdated = false;
+	
+    // Check if the ROI hasn't been updated yet
+    if (!roiUpdated) {
+        // Update ROI bounds here
+        /*roiData.minX = 60; // New bounds
+        roiData.minY = 60;
+        roiData.maxX = 120;
+        roiData.maxY = 120;*/
+
+        // Update temperatures based on the new ROI
+        updateROITemperatures(thermalFrame, roiData); // Make sure thermalFrame is accessible
+
+        // Mark that the ROI has been updated
+        roiUpdated = true;
+		
+    }
+
+	    // Check if 3 or more seconds have elapsed since the last update
+    if (lastUpdateTime == 0 || currentTime - lastUpdateTime >= .5*1000) { // 3000 milliseconds = 3 seconds
+        // Update temperatures based on the new ROI
+        updateROITemperatures(thermalFrame, roiData); // Ensure thermalFrame is accessible here
+
+        // Reset the last update time
+        lastUpdateTime = currentTime;
+    }
+
+    // Now, you can access the updated minTemp and maxTemp for processing
+    unsigned short roiMinTemp = roiData.minTemp;
+    unsigned short roiMaxTemp = roiData.maxTemp;
+
+	//printf("roiMin: %d   roiMax: %d\n", roiMinTemp, roiMaxTemp);
+	// Use the minTemperature and maxTemperature to adjust the colormap
+
+	//make sure if the roiMin is less than the globalKelvinMin, they overlap
+
+	if (thermalPixel < roiMinTemp) {
+		zero2One = mapToSegment(thermalPixel, globalKelvinMin, roiMinTemp, 0.0, 0.4);
+
+	} else if (thermalPixel < roiMaxTemp && roiMaxTemp == globalKelvinMax) {
+
+		zero2One = mapToSegment(thermalPixel, roiMinTemp, roiMaxTemp, 0.4, 1.0); 
+	
+	} else if (thermalPixel < roiMaxTemp && roiMaxTemp != globalKelvinMax) {
+
+		zero2One = mapToSegment(thermalPixel, roiMinTemp, roiMaxTemp, 0.4, 0.6);
+	} else if (thermalPixel < globalKelvinMax && roiMaxTemp != globalKelvinMax){
+		zero2One = mapToSegment(thermalPixel, roiMaxTemp, globalKelvinMax, 0.6, 1.0);
+	}
+
+	return zero2One;
+}
 
 unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 
@@ -4607,7 +4947,20 @@ unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 		return thermalPixel;
 	}
 
-	// Do range clipping
+	float currentMin = minF;	// float point of celcius
+	float currentMax = maxF;
+	float currentAvg = avgF;
+	//printf("min: %d    max: %d\n", minF,maxF);
+
+	
+	
+	/*globalKelvinMax = fahr2Kelvin(125);
+	//globalKelvinMin = fahr2Kelvin(28);
+	//keep the globalKelvinMin and globalKelvinMax unchanged so they are the locking temp
+	//make my own hard min and max*/
+	unsigned short absoluteMin = fahr2Kelvin(32);
+	unsigned short absoluteMax = fahr2Kelvin(120);	
+	globalKelvinRange = globalKelvinMax - globalKelvinMin;
 	if	  ( thermalPixel <= globalKelvinMin ) {	// Low Clip
 		thermalPixel = globalKelvinMin;		// Range lock to colormap scale 
 	} else if ( thermalPixel >= globalKelvinMax ) {	// High Clip
@@ -4618,17 +4971,21 @@ unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 	float zero2One = (float)( thermalPixel - globalKelvinMin ) / (float)globalKelvinRange;
 
 	float degree, thisY;
+
+	/***	NOTE	***/
+	// I will try to make each filter case a different type of manual range of specific to a colormap
+	// I won't change the name for now for simplicity
 	switch ( filterType ) {
 		case FILTER_TYPE_COS360: zero2One = cos360( zero2One ); break;
-// These are closer to stock
-		case FILTER_TYPE_SIN180: zero2One = sin180( zero2One );	break;
-		case FILTER_TYPE_UC180:  zero2One = ucDeg( zero2One, I_USE(179) ); break;
-		case FILTER_TYPE_UC135:  zero2One = ucDeg( zero2One, I_USE(135) ); break;
-		case FILTER_TYPE_UC90:   zero2One = ucDeg( zero2One, I_USE(90) ); break;
+
+		case FILTER_TYPE_SIN180: zero2One = handleFireAndRain(thermalPixel, zero2One ,globalKelvinMax, globalKelvinMin); break;
+		case FILTER_TYPE_UC180:  zero2One = handleRoiRange(thermalPixel, zero2One ,globalKelvinMax, globalKelvinMin); break;
+		case FILTER_TYPE_UC135:  zero2One = handleCelestialWarmth(thermalPixel, zero2One ,globalKelvinMax, globalKelvinMin); break;
+		case FILTER_TYPE_UC90:   zero2One = handleCividis(thermalPixel, zero2One ,globalKelvinMax, globalKelvinMin); break;
 		case FILTER_TYPE_UC2:    zero2One = ucDeg( zero2One, I_USE(2) ); break;
 
 //		case FILTER_TYPE_CENTER: // same as SIN_180
-		case FILTER_TYPE_CENTER_2: zero2One = sin180( zero2One ); break;
+		case FILTER_TYPE_CENTER_2: zero2One = zero2One; break;
 
 		case FILTER_TYPE_OUTER:
 		case FILTER_TYPE_OUTER_2:
@@ -4642,7 +4999,8 @@ unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 
 	if ( filterType2 ) {
 		if 	  ( FILTER_TYPE_LINEAR_2 <= filterType ) {
-			zero2One = 0.1 + (0.9 * zero2One);
+			//printf("min: %f\n", minF);
+			zero2One = 0.025 + (0.975 * zero2One);
 		} else if ( FILTER_TYPE_CENTER_2 <= filterType ) {
 			zero2One = 0.025 + (0.975 * zero2One);
 		} else if ( FILTER_TYPE_OUTER_2 == filterType ) { 
@@ -4651,28 +5009,79 @@ unsigned short thermalRangeFilter_Generic( unsigned int thermalPixel ) {
 		}
 	}
 
-	unsigned int imagePixel = toCLUTSubRange( zero2One );
 
-	ASSERT( ( imagePixel <= MAX_CLUT_PIX ) )
-	return ((BASE_PIXEL + imagePixel) & 0x000080FF );
+	//CHANGED the return so the colomap isn't cropped to values in colormap at time of clipping
+	thermalPixel   = (( MAX_CLUT_PIX * zero2One ) + BASE_PIXEL);
+	return ( thermalPixel & 0x000080FF );
 }
 
-
 unsigned short thermalRangeFilter_Linear( unsigned int thermalPixel ) {
-
+	//printf("enter linear clipping\n");
+	//WHITE HOT
 	// Do range clipping
+	unsigned int weatherTemp = 78;
+	//printf("%f\n", avgF);		// here is the average temp in celcius
+	globalKelvinMax = fahr2Kelvin(150);
+	globalKelvinMin = fahr2Kelvin(-32);
+	globalKelvinRange = globalKelvinMax - globalKelvinMin;
+	unsigned int veryColdMin = globalKelvinMin;
+	unsigned int veryColdMax = fahr2Kelvin(32);
+	unsigned int coldMin = veryColdMax;
+	unsigned int coldMax = fahr2Kelvin(weatherTemp-16);
+	unsigned int coldGapMin = coldMax;
+	unsigned int coldGapMax = fahr2Kelvin(weatherTemp-3);	// 6 degrees below ambient
+	unsigned int ambTempMin = coldGapMax;  
+	unsigned int ambTempMax = fahr2Kelvin(weatherTemp+3);  // 6 degrees above ambient
+	unsigned int warmGapMin = ambTempMax;
+	unsigned int warmGapMax = fahr2Kelvin(82);
+	unsigned int targetMin = warmGapMax;
+	unsigned int targetMax = fahr2Kelvin(102);
+	unsigned int hotMin = targetMax;
+	unsigned int hotMax = fahr2Kelvin(120);
+	unsigned int veryHotMin = hotMax;
+	unsigned int veryHotMax = globalKelvinMax;
+
+	// FILTER_TYPE_LINEAR Thermal Pixel in range [ 0.0 - 1.0 ]
+
 	if	  ( thermalPixel <= globalKelvinMin ) {	// Low Clip
 		thermalPixel = globalKelvinMin;		// Range lock to colormap scale 
 	} else if ( thermalPixel >= globalKelvinMax ) {	// High Clip
 		thermalPixel = globalKelvinMax;		// Range lock to colormap scale
 	}
-
-	// FILTER_TYPE_LINEAR Thermal Pixel in range [ 0.0 - 1.0 ]
 	float zero2One = (float)( thermalPixel - globalKelvinMin ) / (float)globalKelvinRange;
+	// Weight temperature segments in the colormap
+	//printf("weighting temps, Pix: %d\n", thermalPixel);
+	//printf("verycold: %d\n", veryColdMax);
+	if 		  ( thermalPixel < veryColdMax ) {
+		zero2One = mapToSegment(thermalPixel, veryColdMin, veryColdMax, 0.0, 0.02);		// 2% of colormap
+		//printf("layer1\n");
+	} else if ( thermalPixel < coldMax) {
+		zero2One = mapToSegment(thermalPixel, coldMin, coldMax, 0.02, 0.04);			
+		//printf("layer2\n");
+	} else if ( thermalPixel < coldGapMax) {
+		zero2One = mapToSegment(thermalPixel, coldGapMin, coldGapMax, 0.04, 0.08);		
+		//printf("layer3\n");
+	} else if ( thermalPixel < ambTempMax) {
+		zero2One = mapToSegment(thermalPixel, ambTempMin, ambTempMax, 0.08, 0.30);		
+		//printf("layer4\n");
+		//printf("ambTempMax: %d\n", ambTempMax);
+	} else if ( thermalPixel < warmGapMax) {
+		zero2One = mapToSegment(thermalPixel, warmGapMin, warmGapMax, 0.30, 0.31);		
+		//printf("layer5\n");
+	} else if ( thermalPixel < targetMax) {
+		zero2One = mapToSegment(thermalPixel, targetMin, targetMax, 0.31, 0.95);				
+		//printf("layer6\n");
+	} else if ( thermalPixel < hotMax) {
+		zero2One = mapToSegment(thermalPixel, hotMin, hotMax, 0.95, 0.98);				
+		//printf("layer7\n");
+	} else if ( thermalPixel < veryHotMax) {
+		zero2One = mapToSegment(thermalPixel, veryHotMin, veryHotMax, 0.98, 1.0);		
+		//printf("layer8\n");
+	}
 
-	unsigned int imagePixel = toCLUTSubRange( zero2One );
-
-	return ((BASE_PIXEL + imagePixel) & 0x000080FF );
+	//CHANGED the return so the colomap isn't cropped to values in colormap at time of clipping
+	thermalPixel   = (( MAX_CLUT_PIX * zero2One ) + BASE_PIXEL);
+	return ( thermalPixel & 0x000080FF );
 }
 
 
@@ -4710,17 +5119,10 @@ void thermalToImagePixel( Mat &src, Mat &dst ) {
 }
 
 void unsharpMask( Mat &src, Mat &dst ) {
-	// Edge enhancement filter
-	//
-	//	addWeighted() is used here as follows:
-	//	dst = cv2.addWeighted(src1, alpha, src2, beta, gamma)
-	//	Giving you the following transformation:
-	//	dst = (src1 * alpha) + (src2 * beta) + gamma
-
-	// Size(0,0) has sigma automatically calculated
-	Mat gaussian;
-	cv::GaussianBlur( dst, gaussian, Size(0, 0), 2.0 );
-	cv::addWeighted( src, 2, gaussian, -1, 0, dst );
+    // Edge enhancement filter
+    Mat gaussian;
+    cv::GaussianBlur(dst, gaussian, Size(0, 0), 2.0);
+    cv::addWeighted(src, 2, gaussian, -1, 0, dst);
 }
 
 void lockAutoRangeFilter( Mat &src, Mat &dst ) {
@@ -4757,6 +5159,7 @@ void lockAutoRangeFilter( Mat &src, Mat &dst ) {
 
 	// Add edge enhancement filter
 	unsharpMask( dst, dst );
+	//cannyEdgeDetection( dst, dst );
 }
 
 

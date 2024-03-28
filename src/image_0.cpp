@@ -24,13 +24,28 @@
 				}
 			}
 
-                        if ( Use_Histogram ) {
-                                histogramWrapper( imageFrame, imageFrame, 0 );
+                        cv::Mat edges;  // where's a better place to put this?
+                        cv::Mat edgesColored;
+                        int cannyFlag = 0;
+
+                   if ( Use_Histogram ) {
+                        cannyFlag = 1;
+                        // Assuming histogramWrapper correctly populates 'edges' with the edge image
+                        histogramWrapper(imageFrame, imageFrame, 0, edges);
+                        //edge should be CV_8UC1
+                        //cout << "imageFrame type at start: " << type2str(imageFrame.type()) << endl;
+                        //need to find out what imageFrame is. CV_8UC2? CV_8UC3? YUYV?
                         }
 
-                        // Convert the composited image copy to RGB
-                        // cv::cvtColor (InputArray src, OutputArray dst, int code, int dstCn=0)
+                        //cout << "imageFrame type at start: " << type2str(imageFrame.type()) << endl;
                         cvtColor ( imageFrame, rgbImageFrame, COLOR_YUV2BGR_YUYV, CVT_CHAN_FLAG );
+                        //cout << "rgbImageFrame type at start: " << type2str(rgbImageFrame.type()) << endl;
+
+                        if (cannyFlag == 1){
+                        // Overlay edgesColored onto rgbImageFrame
+                        rgbImageFrame.setTo(cv::Scalar(0, 255, 0), edges); // Set pixels to green where edges are detected
+
+                        }
 
                         // Set contrast
                         // void cv::convertScaleAbs (InputArray src, OutputArray dst, double alpha=1, double beta=0)
