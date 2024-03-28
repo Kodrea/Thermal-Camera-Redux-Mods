@@ -1,9 +1,10 @@
 # Thermal-Camera-Redux-Mods
 ### This fork is to experiment with features and changes to the code base
+Work in progress so you'll need to play with variables to use new features.
 - Added custom RGB based colormaps
 - Preset temperature range locks
 - equalizeHist changed to CLAHE
-- Canny edge detection overlay linked with histogram for now.
+- Canny edge detection overlay linked with histogram 'y' for now.
 
  Topdon TC001 (and clones) Linux thermal camera app to read and display live and offline thermal data.<br />
 
