@@ -5100,6 +5100,30 @@ unsigned short thermal2Image( unsigned int thermalPixel ) {
 	return ( thermalPixel & 0x000080FF );
 }
 
+// This method will increase the contrast for a target temperature and decrease the contrast for all others
+unsigned short cannyFilter(unsigned int thermalPixel) {
+	//first experiment with a known scene (warm body against indoor setting)
+	//then try to build an algorithm that adapts based on scene temps
+	//try adding object detection too.
+	unsigned int targetTempLow = fahr2Kelvin(80);
+	unsigned int targetTempHigh = fahr2Kelvin(100);
+
+	//force a consistent colormap range
+	float zero2One = (float)(thermalPixel - fahr2Kelvin(60)) / (fahr2Kelvin(120) - fahr2Kelvin(60));
+	//for temps below target range to darker grey
+	if (thermalPixel < 80) {
+		zero2One = mapToSegment(thermalPixel, fahr2Kelvin(60), targetTempLow, 0.3, 0.6);
+	} else if (thermalPixel < 100) {
+		zero2One = mapToSegment(thermalPixel, targetTempLow, targetTempHigh, 0.8, 1.0);
+	} else if (thermalPixel <= fahr2Kelvin(120)) {
+		zero2One = mapToSegment(thermalPixel, targetTempHigh, fahr2Kelvin(120), 0.0, 0.3);
+	}
+
+	thermalPixel   = (( MAX_CLUT_PIX * zero2One ) + BASE_PIXEL);
+	return ( thermalPixel & 0x000080FF );
+}
+
+
 // Akin to FILTER_TYPE_LINEAR
 void thermalToImagePixel( Mat &src, Mat &dst ) {
 	int max = src.rows * src.cols;
@@ -5168,6 +5192,44 @@ void lockAutoRangeFilter( Mat &src, Mat &dst ) {
 	unsharpMask( dst, dst );
 	//cannyEdgeDetection( dst, dst );
 }
+
+void cannyContrast( Mat &src, Mat &dst ) {
+	/*****************************************************************************
+		Emulate Disabling auto ranging:
+	*****************************************************************************/
+	ASSERT(( 0.0 != globalKelvinRange ))
+
+	int max = src.rows * src.cols;
+
+	unsigned short *srcPtr  = &((unsigned short *)(src.datastart))[0];
+	unsigned short *maxPtr  = &((unsigned short *)(src.datastart))[max];
+	unsigned short *dstPtr  = &((unsigned short *)(dst.datastart))[0];
+
+	// 32768               = 0x00008000
+	// 32768 + 255 = 33023 = 0x000080FF
+	// 32768 + 254 = 33022 = 0x000080FE
+
+#ifdef MAX_RANGE
+#undef MAX_RANGE
+#endif
+#define MAX_RANGE(n) *(dstPtr+n) = (unsigned short)cannyFilter( *(srcPtr+n) );
+			
+	for ( ; srcPtr < maxPtr; srcPtr += 8, dstPtr += 8) { // Copy CV_8UC2 into CV_8UC1 to make monochrome
+		MAX_RANGE(0)
+		MAX_RANGE(1)
+		MAX_RANGE(2)
+		MAX_RANGE(3)
+		MAX_RANGE(4)
+		MAX_RANGE(5)
+		MAX_RANGE(6)
+		MAX_RANGE(7)
+	}
+
+	// Add edge enhancement filter
+	unsharpMask( dst, dst );
+	//cannyEdgeDetection( dst, dst );
+}
+
 
 
 #if ! DRAW_SINGLE_THREAD  /* [ */
@@ -6111,7 +6173,7 @@ int mainPrivate (int argc, char *argv[]) {
 		imshow( WINDOW_NAME, rgbFrame );
 #endif
 
-		TS( threadData.imshowMicros += ( currentTimeMicros() - imshowMicros ); ) // track relative benchmarks
+		TS( threadData.Micros += ( currentTimeMicros() - imshowMicros ); ) // track relative benchmarks
 
 		~threadData.cmapScale;
 		~threadData.rgbHUD;

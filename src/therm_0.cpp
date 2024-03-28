@@ -39,6 +39,13 @@
 					copy = Mat( thermalFrame.rows, thermalFrame.cols, CV_8UC2 );
 				} 
 
+				// Try to add Canny based off of custom image
+				// call lockAutoRangeFilter() and use custom range to generate special contrast image
+				if ( Use_Canny ) {
+					cannyContrast( thermalFrame, copy );
+				}
+
+
 				// Write Histrogram Equalization filter into copy 
 				if ( lockAutoRanging ) {
 					if ( FILTER_TYPE_NONE == filterType ) {

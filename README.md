@@ -13,6 +13,9 @@ Work in progress so you'll need to play with variables to use new features. I'll
 - Experiment with more OpenCV modules (Object Detection and Tracking, Background Subtraction, etc.)
 - Create drone configuration (colormap & temperature combo)
 - Raspberry Pi camera overlay
+<br><br>
+
+
 
  Topdon TC001 (and clones) Linux thermal camera app to read and display live and offline thermal data.<br />
 
@@ -202,19 +205,10 @@ Tested by Amish Technician (from EEVblog) on numerous RPi models including RPi Z
 - Used Vifly video switcher and RPi composite out pads to toggle from fpv camera to thermal camera.
 - Topdon was mounted with servos connected to flight controller running iNav.
 - Arduino head tracker program used as servo inputs (https://headtracker.gitbook.io/head-tracker-v2.2)
-<div style="display: flex;">
-  <div style="width: 50%;">
-    <img src="media/Drone_with_Topdon.png" style="width: 100%;" />
-  </div>
-  <div style="display: flex; flex-direction: column; width: 50%;">
-    <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-      <img src="media/Apartments.png" style="width: auto; max-height: 100%;" />
-    </div>
-    <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-      <img src="media/Apartments_norm.png" style="width: auto; max-height: 100%;" />
-    </div>
-  </div>
-</div>
+| | |
+|-|-|
+| ![First Image](media/Drone_with_Topdon.png) | ![Second Image](media/Apartments.png) |
+| | ![Third Image](media/Apartments_norm.png) |
 
 
 
