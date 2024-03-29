@@ -60,8 +60,9 @@
 				}
 
 				if ( Use_Histogram ) {
+					cd:Mat cann;
                                 	histogramWrapper( 
-						(( lockAutoRanging ) ? copy : thermalFrame), copy, 1 );
+						(( lockAutoRanging ) ? copy : thermalFrame), copy, 1, cann );
 				}
 
                                 thermalFramePtr = &copy;
